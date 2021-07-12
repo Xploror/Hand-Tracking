@@ -25,7 +25,7 @@ class handDetector():
     def findhands(self, img, draw=True):
         colorimg = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         self.results = self.hands.process(colorimg)
-        #print(results.multi_hand_landmarks)
+        print(self.results.multi_hand_landmarks)
     
         if self.results.multi_hand_landmarks:
             for handLms in self.results.multi_hand_landmarks:
@@ -52,6 +52,19 @@ class handDetector():
     
         return lmlist
     
+def tracking_index(lmlist, lmlist2, img, draw=True):
+    if draw:
+        if len(lmlist) !=0:
+            cv2.circle(img, (lmlist[8][1], lmlist[8][2]), 10, (255,255,255), cv2.FILLED)
+        if len(lmlist2) !=0:
+            cv2.circle(img, (lmlist2[8][1], lmlist2[8][2]), 10, (255,255,255), cv2.FILLED)
+                
+        y,x,c = img.shape
+        center_x, center_y = int(x/2), int(y/2)
+        #Draw arrow from any hand index to center of image for cam tracking
+        if len(lmlist) !=0:
+            cv2.line(img, (center_x, center_y), (lmlist[8][1], lmlist[8][2]), (255,0,0), 1)
+    
 def main():
     
     pTime = 0
@@ -61,18 +74,28 @@ def main():
 
     while True:
         success, img = cap.read()
-        img = detector.findhands(img)
-        lmlist = detector.findpos(img)
-        if len(lmlist) !=0:
-            print(lmlist[4])
+        img = detector.findhands(img, draw=False)
+        lmlist = detector.findpos(img, draw=False)
+        try:
+            lmlist2 = detector.findpos(img, 1, draw=False)  #For second hand
+        except:
+            pass
+        
+        tracking_index(lmlist, lmlist2, img)  #Tracking one index finger
+        
         cTime = time.time()
-        fps = 1/(cTime-pTime)
+        try:
+            fps = 1/(cTime-pTime)
+        except:
+            pass
         pTime = cTime
     
         cv2.putText(img, str(int(fps)), (10,60), cv2.FONT_HERSHEY_PLAIN, 3, (255,0,255), 3)
     
         cv2.imshow('Image', img)
-        cv2.waitKey(1)
+        key = cv2.waitKey(1)
+        if key == 27:
+            break
         
     cap.release()
     cv2.destroyAllWindows()
